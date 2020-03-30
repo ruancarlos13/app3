@@ -1,0 +1,277 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Controle Chave</title>
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="css\bootstrap.min.css">
+		<!-- Bootstrap -->
+		<script src="js\jquery-3.1.1.min.js"></script>	
+		<script src="js\bootstrap.min.js"></script>
+		<script type="text/javascript">
+			var numero_cartao;
+			var dados;
+			var id_u="";
+			var id_s="";
+			var sala_obs="";
+			var situacao_chave="";		
+			var salvar_ocorrencia=0;	
+			var ocorrencias_array; 			
+			carrega_tabela();
+			function funcao1()
+			{
+					numero_cartao=document.getElementById('cartao').value;
+					$.ajax({ 
+						type: "POST", 
+						url: "http://geotecmt.com/controlechave/carregamento/usuario.php", 
+						data: "numero="+numero_cartao, 
+						success: function(dados){
+							geral=dados.split("|");
+							document.getElementById("foto_usuario").src = "http://geotecmt.com/controlechave/fotos/"+geral[2];
+							document.getElementById("nome_usuario").innerHTML = geral[1];
+							document.getElementById('cartao').value="";
+							SalaPrin();
+							id_u=dados[0];
+						}
+					});	
+					
+			}
+			function SalaPrin()
+			{
+				document.getElementById("numero_sala").style.border="solid 2px rgb(92,184,92)";	
+				document.getElementById("foto_usuario").style.border="none";
+				document.getElementById('sala_id').focus();				
+			}
+			function UsuarioPrin()
+			{
+				document.getElementById("foto_usuario").style.border="solid 2px rgb(92,184,92)";	
+				document.getElementById("numero_sala").style.border="none";
+				document.getElementById('cartao').focus();				
+			}
+			
+			function funcao2()
+			{
+				numero_cartao=document.getElementById('sala_id').value;
+					$.ajax({ 
+						type: "POST", 
+						url: "http://geotecmt.com/controlechave/carregamento/sala.php", 
+						data: "numero="+numero_cartao, 
+						success: function(dados){
+							if(dados!=""){
+								geral=dados.split("|");
+								document.getElementById("numero_sala").innerHTML = geral[1];
+								$('div.oval').css({'background': 'green'});   ;//green
+								UsuarioPrin();
+								id_s=geral[0];
+								situacao_chave=geral[2];
+								if(geral[2]!=0){
+									document.getElementById("BtnAcao").innerHTML = "Devolver";
+									//======================habilitar btn Observação===============
+									document.getElementById("myModalLabel").innerHTML = "Observações: Altere as observações feitas na Sala "+geral[1];	
+									carrega_modal(geral[0]);
+									document.getElementById("BtnObs").classList.remove('btn-default');
+									document.getElementById("BtnObs").classList.add('btn-success');
+									document.getElementById("BtnObs").removeAttribute('disabled'); 
+									document.getElementById("BtnAcao").removeAttribute('disabled'); 
+									//-------------------------------------------------------------
+								}else{
+									document.getElementById("BtnAcao").innerHTML = "Retirar";	
+									document.getElementById("BtnAcao").removeAttribute('disabled'); 
+								}
+								document.getElementById("BtnAcao").style.background="green";	
+								document.getElementById("BtnAcao").style.color="white";	
+							}
+							document.getElementById('sala_id').value="";
+
+					}
+				});	
+					
+			}
+			function carrega_tabela()
+			{
+					$.ajax({ 
+						type: "POST", 
+						url: "http://www.geotecmt.com/controlechave/carregamento/carrega_tabela.php", 
+						success: function(dados){
+							document.getElementById("tabela_geral").innerHTML = dados;
+					}
+				});	
+					
+			}
+		
+			function pegaChave(){
+				
+				//===========Concatena Ocorrencia===========================
+				if(salvar_ocorrencia==1){
+					for(i=1;i<ocorrencias_array.length-1;i++){
+					sala_obs=sala_obs+ocorrencias_array[i]+"*";
+					}
+				}
+				//----------------------------------------------------------
+				if((situacao_chave>0 && id_s!="")||(situacao_chave==0 && id_u!="" )){	
+					$.ajax({ 
+							type: "POST", 
+							url: "http://geotecmt.com/controlechave/carregamento/registrar_retirada.php", 
+							data: { usuario: id_u, sala: id_s, sit_chave: situacao_chave, ocorrencia: sala_obs},
+							success: function(dados){
+								carrega_tabela();
+								id_s=""; id_u="";situacao_chave="";sala_obs="";salvar_ocorrencia=0;
+								//======Limpar tudo com foco no usuário====
+								limpar();
+
+							}
+					})	
+				}
+			}  
+			function limpar(){
+				document.getElementById('sala_id').value="";
+				document.getElementById('cartao').value="";
+				$('div.oval').css({'background': '#D9534F'});   ;//red
+				document.getElementById("numero_sala").innerHTML = "SALA";
+				document.getElementById("foto_usuario").src = "img/usuario_padrao.png";
+				document.getElementById("nome_usuario").innerHTML = "Nome";
+				document.getElementById("BtnAcao").innerHTML = "Ação";
+				document.getElementById("BtnAcao").style.background="#f0f0f0";	
+				document.getElementById("BtnAcao").style.color="black";
+				//======================Desabilitar btn Observação==============
+				document.getElementById("BtnObs").classList.remove('btn-success');
+				document.getElementById("BtnObs").classList.add('btn-default');
+				document.getElementById("BtnAcao").disabled='disabled'; 
+				document.getElementById("BtnObs").disabled='disabled';
+				//-------------------------------------------------------------
+				UsuarioPrin();
+				id_s=""; id_u="";situacao_chave="";
+				
+			}
+			function BtnOp(num){
+				if(document.getElementById("btnop"+num).value==0){
+					document.getElementById("btnop"+num).classList.remove('btn-default');
+					document.getElementById("btnop"+num).classList.add('btn-success');
+					document.getElementById("btnop"+num).value='1';
+					ocorrencias_array[parseInt(num)]=1;
+				}else{
+					document.getElementById("btnop"+num).classList.remove('btn-success');
+					document.getElementById("btnop"+num).classList.add('btn-default');
+					document.getElementById("btnop"+num).value='0';
+					ocorrencias_array[parseInt(num)]=0;
+				}	
+			}
+
+			function carrega_modal(num){
+				$.ajax({ 
+					type: "POST", 
+					url: "http://geotecmt.com/controlechave/carregamento/carrega_modal.php", 
+					data: { sala: num},
+					success: function(dados){
+						geral=dados.split("|");
+						ocorrencias_array=geral[1].split("*");
+						document.getElementById("ModalObs").innerHTML = geral[0];
+					}
+				});	
+			}
+			function GuardarObs(){
+				salvar_ocorrencia=1;
+			}
+			
+		</script>
+		<style>
+		 div.oval{
+			color:#fff; width:190px; height:190px; line-height:160px; vertical-align:middle; text-align:center; font-size:30px; border-radius:50%; -moz-border-radius:50%; -webkit-border-radius:50%;
+			}
+		img.oval{
+			color:#fff; width:190px; height:190px; line-height:160px; vertical-align:middle; text-align:center; font-size:30px; border-radius:50%; -moz-border-radius:50%; -webkit-border-radius:50%;
+			}
+		</style>
+     <style>
+         
+     </style>		
+	</head>
+	<body background="img/teste2.jpg">
+		<div>
+		<div align="center" style="height:50%"  >
+			<div style="height:85%;">	
+				<div style="float:left;width:50%;height:100%">
+					  
+					  <input type="text"  style="width:0px;height:0px" name="firstname" onchange="funcao1()" value="" id="cartao" autofocus><br>
+					  <br>
+					  <img   class="oval" src="img/usuario_padrao.png" style="border: solid 2px rgb(92,184,92)" id="foto_usuario" onclick="UsuarioPrin()">
+					  <br>
+					  <label id="nome_usuario" style="color: white ">Nome</label>
+
+				</div>
+				<div style="float:right;width:50%;height:100%">
+					  <input type="text"  style="width:0px;height:0px" name="numero_sala1" onchange="funcao2()" value="" id="sala_id"><br>
+					  <br>
+					  <div class="oval" style="background:#D9534F;" id="numero_sala" onclick="SalaPrin()"> SALA </div>
+					  <br>
+					  <label id="obs"></label>
+				</div>
+			</div >	
+			<div style="height:15%;" align="center" >
+				<button type="button" id="BtnAcao"  disabled="disabled" class="btn btn-primary" style="background:#f0f0f0;width:150px;height:40px; color: black; " autocomplete="off" onclick="pegaChave()">
+				  Ação
+				</button>
+				<button align="right" type="button" id="BtnObs" class="btn btn-default" disabled="disabled" aria-label="Right Align" style="width:40px;height:40px" data-toggle="modal" data-target="#myModal">
+				  <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
+				</button>
+				<button type="button" id="NtnCancelar"  class="btn btn-primary" style="background:#D9534F;width:150px;height:40px;" onclick="limpar()">
+				  Cancelar
+				</button>
+
+			</div>
+		</div>
+		
+		<div align="center" style="height:50%">
+			<div class="panel panel-danger" style="width:90%">
+			  <!-- Default panel contents -->
+			  <div class="panel-heading">Retidada de Chaves</div>
+			  <!-- Table -->			  
+			  	<div class="btn-group"style="width: 100%">
+				<button type="button" class="btn btn-default" style="width: 12%">Sala</button>
+				<button type="button" class="btn btn-default"style="width: 44%">Usuário</button>
+				<button type="button" class="btn btn-default"style="width: 44%">Retirada</button>
+				</div>
+				<div style="height:170px;overflow-y: scroll">
+				<table class="table table-hover" style="width: 100%" align="center" id="tabela_geral">
+				</table>						
+				</div>
+			</div>
+		</div>
+		<!---Modal----------------------------------------------------------------------->
+		<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		  <div class="modal-dialog" role="document">
+			<div class="modal-content">
+			  <div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel"></h4>
+			  </div>
+			  <div class="modal-body" align="center" id="ModalObs"> 
+				 
+				<div style="height:45px">  
+				<button type="button" id="btnop1"  class="btn btn-default" style="width:400px;height:40px;" value="0" onclick="BtnOp('1')">
+				  Condicionador de ar não funciona </button> </div>
+				<div style="height:45px">
+				  <button type="button" id="btnop2"  class="btn btn-default" style="width:400px;height:40px;" value="0" onclick="BtnOp('2')">
+				  Iluminação insuficiente </button></div>
+				  <div style="height:45px"> 
+				  <button type="button" id="btnop3"  class="btn btn-default" style="width:400px;height:40px; " value="0" onclick="BtnOp('3')">
+				  Chave ou tranca com problema </button> </div>
+				  <div style="height:45px"> 
+				  <button type="button" id="btnop4"  class="btn btn-default" style="width:400px;height:40px; " value="0" onclick="BtnOp('4')">
+				  Datashow fora da conformidade </button> </div>
+				  <div style="height:45px"> 
+					<button type="button" id="btnop5" class="btn btn-default" style="width:400px;height:40px; " value="0" onclick="BtnOp('5')">Problemas de conexão com rede </button>
+				  </div>
+				  
+			  </div>
+			  <div class="modal-footer">
+				<button type="button" class="btn btn-primary" onclick="GuardarObs()" data-dismiss="modal">Salvar</button>
+			  </div>
+			</div>
+		  </div>
+		</div>
+		<!------------------------------------------------------------------------------->
+
+	</body>
+</html>
